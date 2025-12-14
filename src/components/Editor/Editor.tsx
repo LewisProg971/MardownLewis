@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useImperativeHandle, forwardRef } from 'react';
 import getCaretCoordinates from 'textarea-caret';
 import { SlashMenu, type Command } from '../SlashMenu/SlashMenu';
 import './Editor.css';
@@ -8,8 +8,23 @@ interface EditorProps {
     onChange: (value: string) => void;
 }
 
-export const Editor: React.FC<EditorProps> = ({ value, onChange }) => {
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
+export const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(({ value, onChange }, ref) => {
+    // We use an internal ref for our own logic if the parent doesn't need full control, 
+    // but here we want to share the ref. 
+    // If we simply forward the ref, we can't use it easily internally unless we use a callback ref or similar.
+    // However, since we need it for caret coordinates, let's use a local ref and sync it, or use useImperativeHandle?
+    // Actually, taking a ref from props is cleaner for sync scroll.
+
+    // Better pattern: Create a local ref if one isn't provided, but strictly we expect a forwarded ref now.
+    // But to avoid breaking internal logic, let's assume `ref` acts as the primary ref.
+    // Since we need to access it inside `handleInput`, we need to ensure we can read it.
+    // We can use a combination or just rely on `e.currentTarget`.
+
+    const internalRef = useRef<HTMLTextAreaElement>(null);
+
+    // Sync forwarded ref with internal ref
+    useImperativeHandle(ref, () => internalRef.current!, []);
+
     const [menuState, setMenuState] = useState<{
         isOpen: boolean;
         position: { top: number; left: number };
@@ -57,8 +72,8 @@ export const Editor: React.FC<EditorProps> = ({ value, onChange }) => {
     };
 
     const handleCommandSelect = (cmd: Command) => {
-        if (!textareaRef.current) return;
-        const textarea = textareaRef.current;
+        if (!internalRef.current) return;
+        const textarea = internalRef.current;
 
         const textWithoutTrigger = value.slice(0, menuState.triggerIndex) + value.slice(textarea.selectionStart);
 
@@ -89,7 +104,7 @@ export const Editor: React.FC<EditorProps> = ({ value, onChange }) => {
     return (
         <div className="editor-container" style={{ position: 'relative' }}>
             <textarea
-                ref={textareaRef}
+                ref={internalRef}
                 className="editor-textarea"
                 value={value}
                 onInput={handleInput}
@@ -109,4 +124,6 @@ export const Editor: React.FC<EditorProps> = ({ value, onChange }) => {
             )}
         </div>
     );
-};
+});
+
+Editor.displayName = 'Editor';

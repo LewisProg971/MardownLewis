@@ -7,9 +7,9 @@ interface PreviewProps {
     content: string;
 }
 
-export const Preview: React.FC<PreviewProps> = ({ content }) => {
+export const Preview = React.forwardRef<HTMLDivElement, PreviewProps>(({ content }, ref) => {
     return (
-        <div className="preview-container">
+        <div className="preview-container" ref={ref}>
             <div className="markdown-body">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                     {content}
@@ -17,4 +17,6 @@ export const Preview: React.FC<PreviewProps> = ({ content }) => {
             </div>
         </div>
     );
-};
+});
+
+Preview.displayName = 'Preview';

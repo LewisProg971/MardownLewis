@@ -39,6 +39,75 @@ function App() {
     }
   }, []);
 
+  // Refs for sync scrolling
+  const editorRef = useRef<HTMLTextAreaElement>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
+  const isScrolling = useRef<'editor' | 'preview' | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sync Scroll Logic
+  useEffect(() => {
+    const handleEditorScroll = () => {
+      if (!editorRef.current || !previewRef.current) return;
+      // If the preview is currently driving the scroll, ignore this event to prevent loops
+      if (isScrolling.current === 'preview') return;
+
+      isScrolling.current = 'editor';
+
+      // Clear existing timeout to keep the lock active while scrolling continues
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+      const editor = editorRef.current;
+      const preview = previewRef.current;
+
+      // Calculate percentage and apply immediately for responsiveness
+      // (requestAnimationFrame can sometimes add a frame of lag for direct input, but good for rendering)
+      // Here, direct assignment is usually best for 1:1 sync unless calculating heavy math
+      const percentage = editor.scrollTop / (editor.scrollHeight - editor.clientHeight);
+      const targetScrollTop = percentage * (preview.scrollHeight - preview.clientHeight);
+
+      preview.scrollTop = targetScrollTop;
+
+      // Release the lock only after scrolling stops (e.g. 50-100ms pause)
+      timeoutRef.current = setTimeout(() => {
+        isScrolling.current = null;
+      }, 50);
+    };
+
+    const handlePreviewScroll = () => {
+      if (!editorRef.current || !previewRef.current) return;
+      if (isScrolling.current === 'editor') return;
+
+      isScrolling.current = 'preview';
+
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+      const editor = editorRef.current;
+      const preview = previewRef.current;
+
+      const percentage = preview.scrollTop / (preview.scrollHeight - preview.clientHeight);
+      const targetScrollTop = percentage * (editor.scrollHeight - editor.clientHeight);
+
+      editor.scrollTop = targetScrollTop;
+
+      timeoutRef.current = setTimeout(() => {
+        isScrolling.current = null;
+      }, 50);
+    };
+
+    const editorEl = editorRef.current;
+    const previewEl = previewRef.current;
+
+    if (editorEl) editorEl.addEventListener('scroll', handleEditorScroll);
+    if (previewEl) previewEl.addEventListener('scroll', handlePreviewScroll);
+
+    return () => {
+      if (editorEl) editorEl.removeEventListener('scroll', handleEditorScroll);
+      if (previewEl) previewEl.removeEventListener('scroll', handlePreviewScroll);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, [viewMode, debouncedMarkdown]); // Re-attach when view changes or content changes (heights might change)
+
   const toggleViewMode = () => {
     if (viewMode === 'split') setViewMode('preview');
     else if (viewMode === 'preview') setViewMode('editor');
@@ -162,12 +231,12 @@ function App() {
       <main className="main-content">
         {(viewMode === 'split' || viewMode === 'editor') && (
           <div className="pane editor-pane" style={{ flex: 1 }}>
-            <Editor value={markdown} onChange={setMarkdown} />
+            <Editor value={markdown} onChange={setMarkdown} ref={editorRef} />
           </div>
         )}
         {(viewMode === 'split' || viewMode === 'preview') && (
           <div className="pane preview-pane" style={{ flex: 1 }}>
-            <Preview content={debouncedMarkdown} />
+            <Preview content={debouncedMarkdown} ref={previewRef} />
           </div>
         )}
       </main>
