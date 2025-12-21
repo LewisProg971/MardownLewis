@@ -126,13 +126,13 @@ function App() {
     <title>Markdown Export</title>
     <style>
         :root {
-            --bg-primary: #0d1117;
-            --text-primary: #c9d1d9;
-            --text-secondary: #8b949e;
-            --text-accent: #58a6ff;
-            --border-color: #30363d;
-            --bg-secondary: #161b22;
-            --bg-tertiary: #21262d;
+            --bg-primary: #050505;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --text-accent: #ff3e3e;
+            --border-color: #331a1a;
+            --bg-secondary: #0f0f0f;
+            --bg-tertiary: #1a1a1a;
             --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
             --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
         }
